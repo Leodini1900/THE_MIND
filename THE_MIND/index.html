@@ -278,9 +278,9 @@
     function startRotation() {
         isRotating = true;
         rotationInterval = setInterval(() => {
-            rotationAngle += 5; // Ajustez la vitesse de rotation ici
+            rotationAngle += 10; // Ajustez la vitesse de rotation ici
             spinShuriken.style.transform = `rotate(${rotationAngle}deg)`;
-        }, 50); // Ajustez l'intervalle pour contrôler la fluidité de la rotation
+        }, 100); // Ajustez l'intervalle pour contrôler la fluidité de la rotation
     }
 
     function stopRotation() {
