@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Mind</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="game-container">
+    <div id="column-1">
+        <div id="status">Connexion en cours...</div>
+        <div id="level">Niveau: 1</div>
+        <div id="lives">Vies restantes: 3</div>
+        <div id="shurikens">Shurikens restants: 1</div>
+        <div id="connected-players">
+            <h2>🎬 TOC_TOC qui est la 🍿</h2>
+            <table id="players-table">
+                <thead>
+                    <tr>
+                        <th>Connectés</th>
+                        <th>Prêt</th>
+                        <th>Numéro de joueur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Les lignes seront ajoutées dynamiquement ici -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="column-2">
+        <button id="concentration-button" class="btn-concentration" data-status="concentration">On se concentre</button>
+        <h1>The Mind</h1>
+        <div id="player-cards"></div>
+        <div id="game-table">
+            <div id="table-cards"></div>
+        </div>
+        <button id="shuriken-button" class="btn"></button>
+        <button id="ready-button" class="btn-ready">Prêt</button>
+        
+
+    </div>
+    <div id="column-3">
+            <div id="spin-area">
+            <img id="spin-shuriken" src="spin_shuriken.png" alt="Spin Shuriken">
+            <div>
+                <label for="friction-slider">Graissage du hand spiner:</label>
+                <input type="range" id="friction-slider" min="0.95" max="0.99" step="0.0004" value="0.95">
+                <span id="friction-value">0.95</span>
+            </div>
+        </div>
+    	<button id="rules-button">Règles du jeu</button>	
+        <div id="rules-container">
+            <h2>Règles du jeu</h2>
+            <div id="rules-content">
+                Chargement des règles...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    const statusDiv = document.getElementById('status');
+    const levelDiv = document.getElementById('level');
+    const livesDiv = document.getElementById('lives');
+    const shurikensDiv = document.getElementById('shurikens');
+    const playerCardsDiv = document.getElementById('player-cards');
+    const tableCardsDiv = document.getElementById('table-cards');
+    const concentrationButton = document.getElementById('concentration-button');
+    const shurikenButton = document.getElementById('shuriken-button');
+    const readyButton = document.getElementById('ready-button');
+    const rulesContentDiv = document.getElementById('rules-content');
+    const playersTableBody = document.querySelector('#players-table tbody');
+    const rulesButton = document.getElementById('rules-button');
+    const rulesContainer = document.getElementById('rules-container');
+    const ws = new WebSocket('ws://192.168.10.130:8085/ws');
+    const spinShuriken = document.getElementById('spin-shuriken');
+    const frictionSlider = document.getElementById('friction-slider');
+    const frictionValue = document.getElementById('friction-value');
+    let playerCards = [];
+    let players = {};
+    let playerId = null;
+    let isRotating = false;
+    let isScratching = false;
+    let lastX = 0;
+    let rotationAngle = 0;
+    let rotationVelocity = 0;
+    let rotationInterval;
+    let friction = 0.95; // Coefficient de frottement
+
+    ws.onopen = () => {
+        statusDiv.textContent = 'Connecté au serveur';
+        console.log('Connecté au serveur');
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Message reçu :', data);
+
+        if (data.type === 'init') {
+            playerCards = data.cards;
+            levelDiv.textContent = `Niveau: ${data.level}`;
+            livesDiv.textContent = `Vies restantes: ${data.lives}`;
+            shurikensDiv.textContent = `Shurikens restants: ${data.shurikens}`;
+            playerCardsDiv.innerHTML = '';
+            playerCards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.textContent = card.Number;
+                cardDiv.style.backgroundColor = card.Color;
+                cardDiv.onclick = () => playCard(card);
+                playerCardsDiv.appendChild(cardDiv);
+            });
+            statusDiv.textContent = `Vous avez ${playerCards.length} cartes`;
+            playerId = data.playerId;
+            updatePlayersTable(data.players);
+        } else if (data.type === 'play') {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'card';
+            cardDiv.textContent = data.card;
+            cardDiv.style.backgroundColor = data.color;
+            tableCardsDiv.appendChild(cardDiv);
+        } else if (data.type === 'status') {
+            statusDiv.textContent = data.message;
+        } else if (data.type === 'clear') {
+            tableCardsDiv.innerHTML = '';
+        } else if (data.type === 'concentration_status') {
+            updateConcentrationButton(data.status);
+        } else if (data.type === 'update') {
+            playerCards = data.cards;
+            playerCardsDiv.innerHTML = '';
+            playerCards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                cardDiv.textContent = card.Number;
+                cardDiv.style.backgroundColor = card.Color;
+                cardDiv.onclick = () => playCard(card);
+                playerCardsDiv.appendChild(cardDiv);
+            });
+        } else if (data.type === 'players_update') {
+            updatePlayersTable(data.players);
+        }
+    };
+
+    ws.onclose = () => {
+        statusDiv.textContent = 'Déconnecté du serveur';
+        console.log('Déconnecté du serveur');
+    };
+
+    ws.onerror = (error) => {
+        statusDiv.textContent = 'Erreur WebSocket : ' + error.message;
+        console.log('Erreur WebSocket :', error.message);
+    };
+
+    function playCard(card) {
+        console.log('Playing card:', card);
+        ws.send(JSON.stringify({ type: 'play', card: card.Number, color: card.Color }));
+        playerCards = playerCards.filter(c => c.Number !== card.Number);
+        playerCardsDiv.innerHTML = '';
+        playerCards.forEach(c => {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'card';
+            cardDiv.textContent = c.Number;
+            cardDiv.style.backgroundColor = c.Color;
+            cardDiv.onclick = () => playCard(c);
+            playerCardsDiv.appendChild(cardDiv);
+        });
+    }
+
+    concentrationButton.addEventListener('click', () => {
+        const currentStatus = concentrationButton.dataset.status;
+        const newStatus = currentStatus === 'concentration' ? 'game' : 'concentration';
+        console.log('Toggling concentration:', newStatus);
+        ws.send(JSON.stringify({ type: 'concentration', concentration: newStatus === 'game' }));
+        updateConcentrationButton(newStatus);
+    });
+
+    shurikenButton.addEventListener('click', () => {
+        console.log('Using shuriken');
+        ws.send(JSON.stringify({ type: 'shuriken' }));
+    });
+
+    readyButton.addEventListener('click', () => {
+        console.log('Ready button clicked');
+        ws.send(JSON.stringify({ type: 'ready' }));
+    });
+
+    rulesButton.addEventListener('click', () => {
+        rulesContainer.style.display = rulesContainer.style.display === 'block' ? 'none' : 'block';
+    });
+
+    function updateConcentrationButton(status) {
+        concentrationButton.dataset.status = status;
+        if (status === 'game') {
+            concentrationButton.textContent = 'ACTION';
+            concentrationButton.style.background = 'linear-gradient(145deg, #008000, #006440)';
+        } else {
+            concentrationButton.textContent = 'On se concentre';
+            concentrationButton.style.background = 'linear-gradient(145deg, #ff4500, #ffa500)';
+        }
+        concentrationButton.classList.remove('clicked');
+    }
+
+    function updatePlayersTable(players) {
+        playersTableBody.innerHTML = '';
+        for (let i = 0; i < 10; i++) {
+            const row = document.createElement('tr');
+            const connectedCell = document.createElement('td');
+            const readyCell = document.createElement('td');
+            const playerNumberCell = document.createElement('td');
+
+            playerNumberCell.textContent = i + 1;
+
+            if (players[i]) {
+                if (players[i].ready) {
+                    const readyDot = document.createElement('div');
+                    readyDot.className = 'ready';
+                    readyCell.appendChild(readyDot);
+                } else {
+                    const connectedDot = document.createElement('div');
+                    connectedDot.className = 'connected';
+                    connectedCell.appendChild(connectedDot);
+                }
+            }
+
+            row.appendChild(connectedCell);
+            row.appendChild(readyCell);
+            row.appendChild(playerNumberCell);
+            playersTableBody.appendChild(row);
+        }
+    }
+
+    // Fetch and display the rules from the Markdown file
+    fetch('/THE_MIND/rules.md')
+        .then(response => response.text())
+        .then(text => {
+            rulesContentDiv.innerHTML = marked.parse(text);
+        })
+        .catch(error => {
+            rulesContentDiv.textContent = 'Impossible de charger les règles.';
+            console.error('Erreur de chargement des règles:', error);
+        });
+
+    // Add event listeners for spin interaction
+    spinShuriken.addEventListener('mousedown', startInteraction);
+    spinShuriken.addEventListener('mousemove', scratch);
+    spinShuriken.addEventListener('mouseup', stopInteraction);
+    spinShuriken.addEventListener('mouseleave', stopInteraction);
+
+    function startInteraction(event) {
+        event.preventDefault();
+        isScratching = true;
+        lastX = event.clientX;
+        spinShuriken.classList.remove('rotating'); // Arrête la rotation automatique si elle est en cours
+        clearInterval(rotationInterval); // Arrête l'intervalle de rotation automatique
+    }
+
+    function scratch(event) {
+        if (!isScratching) return;
+        const deltaX = event.clientX - lastX;
+        lastX = event.clientX;
+        rotationVelocity = deltaX * 0.5; // Ajustez ce multiplicateur pour contrôler la sensibilité
+        rotationAngle += rotationVelocity;
+        spinShuriken.style.transform = `rotate(${rotationAngle}deg)`;
+    }
+
+    function stopInteraction() {
+        isScratching = false;
+        if (!isRotating) {
+            startRotation(); // Démarre la rotation automatique si elle n'est pas déjà en cours
+        } else {
+            applyFriction();
+        }
+    }
+
+    function startRotation() {
+        isRotating = true;
+        rotationInterval = setInterval(() => {
+            rotationAngle += 5; // Ajustez la vitesse de rotation ici
+            spinShuriken.style.transform = `rotate(${rotationAngle}deg)`;
+        }, 50); // Ajustez l'intervalle pour contrôler la fluidité de la rotation
+    }
+
+    function stopRotation() {
+        isRotating = false;
+        clearInterval(rotationInterval);
+        spinShuriken.style.transform = 'rotate(0deg)'; // Réinitialise la rotation
+    }
+
+    function applyFriction() {
+        if (Math.abs(rotationVelocity) < 0.1) {
+            rotationVelocity = 0;
+            return;
+        }
+        rotationVelocity *= friction;
+        rotationAngle += rotationVelocity;
+        spinShuriken.style.transform = `rotate(${rotationAngle}deg)`;
+        requestAnimationFrame(applyFriction);
+    }
+
+    // Ajoutez ces lignes pour démarrer et arrêter la rotation normale
+    spinShuriken.addEventListener('click', () => {
+        if (!isScratching) {
+            if (isRotating) {
+                stopRotation();
+            } else {
+                startRotation();
+            }
+        }
+    });
+
+    // Ajoutez ces lignes pour gérer le curseur de friction
+    frictionSlider.addEventListener('input', (event) => {
+        const newFriction = parseFloat(event.target.value);
+        friction = newFriction;
+        frictionValue.textContent = newFriction.toFixed(4);
+    });
+</script>
+
+</body>
+</html>

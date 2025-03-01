@@ -1,0 +1,266 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-image: url('fond.jpg'); /* Ajout de l'image de fond */
+    background-size: cover; /* Assure que l'image couvre tout l'écran */
+    background-position: center; /* Centre l'image de fond */
+    color: chartreuse;
+}
+
+#game-container {
+    display: flex;
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    /*backdrop-filter: blur(10px); /* Applique le flou uniquement au conteneur de jeu */
+}
+
+#column-1, #column-2, #column-3 {
+    flex: 1;
+    margin: 0 10px;
+}
+
+#column-1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#column-2 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#column-3 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#rules-container {
+    background-color: rgba(135, 206, 235, 0.8);
+    color: #000;
+    padding: 20px;
+    border-radius: 10px;
+    margin-left: 20px;
+    width: 200px;
+    height: calc(100vh - 40px);
+    overflow-y: auto;
+    font-size: 0.9em;
+    display: none; /* Masque les règles par défaut */
+}
+
+#rules-container h2 {
+    margin-top: 0;
+}
+
+#rules-content {
+    white-space: pre-wrap;
+}
+
+#game-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+#game-table {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(0, 128, 0, 0.8);
+    padding: 50px;
+    border-radius: 10px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#player-cards, #table-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 600px;
+}
+
+.card {
+    width: 60px;
+    height: 90px;
+    border: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    color: #000; /* Assure que le texte reste noir */
+    font-weight: bold; /* Assure que le texte est en gras */
+}
+
+#concentration-button {
+    width: 200px;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #e6e6e6, #ffffff);
+    box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+#concentration-button[data-status="concentration"] {
+    animation: flickerAnimation 1.5s infinite;
+    background: linear-gradient(145deg, #ff4500, #ffa500);
+}
+
+#concentration-button[data-status="game"] {
+    animation: flickerAnimation 1.5s infinite;
+    background: linear-gradient(145deg, #008000, #006440);
+}
+
+#concentration-button:hover {
+    transform: scale(1.1);
+}
+
+#concentration-button:active {
+    box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
+
+@keyframes flickerAnimation {
+    0% { background-color: #ff4500; }
+    50% { background-color: #ffa500; }
+    100% { background-color: #ff4500; }
+}
+
+#shuriken-button {
+    width: 50px;
+    height: 75px;
+    background-image: url('shuriken.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+#shuriken-button:hover {
+    transform: scale(3);
+}
+
+#shuriken-button:active {
+    transform: scale(2);
+}
+
+#connected-players {
+    margin-top: 20px;
+}
+
+#players-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#players-table th, #players-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+#players-table th {
+    background-color: chocolate;
+}
+
+.connected {
+    background-color: red;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.ready {
+    background-color: green;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+#ready-button {
+    width: 100px;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #ff4500, #ffa500);
+    box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+#ready-button:hover {
+    transform: scale(1.1);
+}
+
+#ready-button:active {
+    box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
+
+#spin-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+#spin-shuriken {
+    width: 300px;
+    height: 300px;
+    cursor: grab;
+    transition: transform 0.1s;
+}
+
+#spin-shuriken.rotating {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#rules-button {
+    width: 200px;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(145deg, #e6e6e6, #ffffff);
+    box-shadow: 5px 5px 10px #bebebe, -5px -5px 10px #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+#rules-button:hover {
+    transform: scale(1.1);
+}
+
+#rules-button:active {
+    box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff;
+}
